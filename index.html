@@ -2,37 +2,35 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Goalink Editor - Standing Fixed</title>
+    <title>Goalink Editor - Standing Slim</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { background: #111; color: white; font-family: 'Helvetica Neue', Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; display: flex; flex-direction: column; align-items: center; padding: 10px; }
-        .controls { background: #222; padding: 15px; border-radius: 10px; margin-bottom: 20px; width: 480px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
-        textarea { width: 100%; height: 100px; background: #333; color: #ccc; border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 11px; }
+        body { background: #111; color: white; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+        .controls { background: #222; padding: 15px; border-radius: 10px; margin-bottom: 10px; width: 480px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
+        textarea { width: 100%; height: 80px; background: #333; color: #ccc; border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 11px; }
         button { background: #007AFF; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         
+        /* インスタ投稿用 4:5サイズ */
         #capture-area { 
             width: 432px; height: 540px; background: #000; overflow: hidden; position: relative;
-            display: flex; flex-direction: column; padding: 12px 10px; box-sizing: border-box;
+            display: flex; flex-direction: column; padding: 5px; box-sizing: border-box;
         }
 
-        .header { text-align: center; margin-bottom: 8px; border-bottom: 1px solid #fff; padding-bottom: 5px; }
-        .league-title { font-size: 18px; font-weight: 900; }
-
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 5px; }
         
-        /* 文字の太さを900で統一 */
+        /* 文字の太さを900（極太）で統一 */
         th, td { font-weight: 900 !important; text-align: center; white-space: nowrap; }
-        th { font-size: 9px; color: #999; padding-bottom: 4px; border-bottom: 1px solid #444; }
-        td { font-size: 11px; padding: 4.2px 0; border-bottom: 1px solid #222; color: #fff; }
+        th { font-size: 10px; color: #777; padding: 8px 0; border-bottom: 2px solid #333; }
+        td { font-size: 12.5px; padding: 5.5px 0; border-bottom: 1px solid #222; color: #fff; }
 
-        /* 列幅の指定 */
-        .col-r { width: 22px; } 
-        .col-t { width: 125px; text-align: left; padding-left: 5px; } 
-        .col-m { width: 22px; color: #bbb; } /* 試合数 */
-        .col-pts { width: 26px; } /* 勝点 */
-        .col-s { width: 20px; color: #888; font-size: 10px; } /* 勝分負 */
-        .col-g { width: 22px; color: #888; font-size: 10px; } /* 得失 */
-        .col-gd { width: 28px; } /* 差 */
+        /* 列幅指定（20位まで入れるための微調整） */
+        .col-r { width: 26px; } 
+        .col-t { width: 135px; text-align: left; padding-left: 8px; } 
+        .col-m { width: 24px; color: #aaa; } 
+        .col-pts { width: 30px; color: #fff; } 
+        .col-s { width: 22px; color: #888; font-size: 10px; }
+        .col-g { width: 24px; color: #888; font-size: 10px; }
+        .col-gd { width: 32px; }
 
         .team-name { overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; }
         #res img { margin-top: 20px; width: 432px; border: 1px solid #444; }
@@ -41,22 +39,19 @@
 <body>
 
     <div class="controls">
-        <textarea id="it" placeholder="順位表をそのままコピペ"></textarea>
-        <button onclick="parseStanding()">1. 順位表を解析・入替</button>
+        <textarea id="it" placeholder="順位表をコピペ"></textarea>
+        <button onclick="parseStanding()">1. 順位表を解析（試・点入替）</button>
         <button onclick="takePhoto()" style="background:#34c759;">2. 画像出力</button>
     </div>
 
     <div id="capture-area">
-        <div class="header">
-            <div class="league-title" contenteditable="true">明治安田Ｊ１リーグ 順位表</div>
-        </div>
         <table>
             <thead>
                 <tr>
                     <th class="col-r">順</th>
-                    <th class="col-t">チーム</th>
-                    <th class="col-m">試</th>
-                    <th class="col-pts">点</th>
+                    <th class="col-t">TEAM</th>
+                    <th class="col-m">試合</th>
+                    <th class="col-pts">勝点</th>
                     <th class="col-s">勝</th>
                     <th class="col-s">分</th>
                     <th class="col-s">負</th>
@@ -87,32 +82,27 @@
 
         function parseStanding() {
             const raw = document.getElementById('it').value;
-            const lines = raw.split(/\s+/).filter(l => l !== ""); // 空白・改行すべて分解
+            const allTokens = raw.split(/\s+/).filter(t => t !== "");
             let data = [];
 
-            for (let i = 0; i < lines.length; i++) {
-                // 順位（数字）→ チーム名（文字）の並びを見つける
-                if (lines[i].match(/^\d{1,2}$/) && lines[i+1] && !lines[i+1].match(/^\d+$/)) {
-                    let rank = lines[i];
-                    let team = lines[i+1];
+            for (let i = 0; i < allTokens.length; i++) {
+                // 「数字」→「チーム名」のパターンを検知
+                if (allTokens[i].match(/^\d{1,2}$/) && allTokens[i+1] && !allTokens[i+1].match(/^\d+$/)) {
                     let stats = [];
-
-                    // その後の数字を収集
-                    for(let j=i+2; j<i+20; j++) {
-                        if(lines[j] && lines[j].match(/^[+-]?\d+$/)) stats.push(lines[j]);
+                    for(let j=i+2; j<i+15; j++) {
+                        if(allTokens[j] && allTokens[j].match(/^[+-]?\d+$/)) stats.push(allTokens[j]);
                         if(stats.length >= 8) break;
                     }
 
                     if(stats.length >= 8) {
-                        // コピー元[0]:点 [1]:試 を、出力時に逆転させる
                         data.push({
-                            rank: rank,
-                            team: getConvertedName(team),
-                            m: stats[1],   // ここで入れ替え
-                            pts: stats[0], // ここで入れ替え
+                            rank: allTokens[i],
+                            team: getConvertedName(allTokens[i+1]),
+                            m: stats[1],   // 入れ替え
+                            pts: stats[0], // 入れ替え
                             w: stats[2], d: stats[3], l: stats[4], gf: stats[5], ga: stats[6], gd: stats[7]
                         });
-                        i += 9; // 処理した分スキップ
+                        i += 9;
                     }
                 }
             }
