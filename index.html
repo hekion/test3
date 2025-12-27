@@ -2,12 +2,12 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Goalink Editor - Standing Final</title>
+    <title>Goalink Editor - Final Refined</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 10px; }
         .controls { background: #222; padding: 10px; border-radius: 10px; margin-bottom: 10px; width: 480px; display: flex; flex-direction: column; gap: 5px; }
-        textarea { width: 100%; height: 60px; background: #333; color: #ccc; font-size: 11px; border-radius: 4px; border: 1px solid #444; }
+        textarea { width: 100%; height: 60px; background: #333; color: #ccc; font-size: 11px; border: 1px solid #444; }
         button { background: #007AFF; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         
         #capture-area { 
@@ -17,26 +17,29 @@
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         
-        /* 基本は極太、得失点差だけ通常 */
-        th, td { text-align: center; white-space: nowrap; line-height: 1.2; }
-        th { font-size: 9px; color: #777; padding: 5px 0; border-bottom: 1px solid #444; font-weight: 900; }
-        td { font-size: 11px; padding: 3px 0; border-bottom: 1px solid #222; color: #fff; font-weight: 900; }
+        /* 基本設定：数値やヘッダーは細字(500) */
+        th, td { text-align: center; white-space: nowrap; line-height: 1.2; font-weight: 500; }
+        th { font-size: 9px; color: #777; padding: 5px 0; border-bottom: 1px solid #444; }
+        td { font-size: 11px; padding: 2.8px 0; border-bottom: 1px solid #222; color: #eee; }
 
-        /* 得失点差の列だけ通常の太さに */
-        .col-gd-val { font-weight: 500 !important; font-size: 10.5px; color: #eee; }
+        /* チーム名だけを太文字(900)に */
+        .col-t-val { font-weight: 900 !important; font-size: 11.5px; color: #fff; text-align: left; padding-left: 5px; }
+
+        /* 勝点列に少しだけアクセント（案1の採用） */
+        .col-pts-val { background: rgba(255,255,255,0.05); color: #fff; }
 
         .league-divider { 
             background: #222; color: #fff; font-size: 9px; font-weight: 900; 
             text-align: center; padding: 3px 0; border-bottom: 1px solid #444;
         }
 
-        /* 列幅調整 */
+        /* 列幅 */
         .col-r { width: 22px; } 
-        .col-t { width: 130px; text-align: left; padding-left: 5px; } 
-        .col-m { width: 22px; color: #aaa; } 
+        .col-t { width: 130px; } 
+        .col-m { width: 22px; } 
         .col-pts { width: 28px; } 
-        .col-s { width: 20px; color: #888; font-size: 9px; }
-        .col-g { width: 22px; color: #888; font-size: 9px; }
+        .col-s { width: 20px; color: #777; }
+        .col-g { width: 22px; color: #777; }
         .col-gd { width: 28px; }
 
         .team-name { overflow: hidden; text-overflow: ellipsis; display: block; }
@@ -46,7 +49,7 @@
 <body>
 
     <div class="controls">
-        <textarea id="it" placeholder="順位表コピペ"></textarea>
+        <textarea id="it" placeholder="順位表をコピペ"></textarea>
         <div style="display:flex; gap:5px;">
             <button onclick="parseStanding(false)" style="flex:1;">通常(20位連番)</button>
             <button onclick="parseStanding(true)" style="flex:1; background:#E02424;">2ブロック形式</button>
@@ -58,10 +61,7 @@
         <table>
             <thead>
                 <tr>
-                    <th class="col-r">順</th>
-                    <th class="col-t">TEAM</th>
-                    <th class="col-m">試</th>
-                    <th class="col-pts">点</th>
+                    <th class="col-r">順</th><th class="col-t">TEAM</th><th class="col-m">試</th><th class="col-pts">点</th>
                     <th class="col-s">勝</th><th class="col-s">分</th><th class="col-s">負</th>
                     <th class="col-g">得</th><th class="col-g">失</th><th class="col-gd">差</th>
                 </tr>
@@ -97,7 +97,7 @@
                     if(stats.length >= 8) {
                         data.push({
                             rank: allTokens[i], team: getConvertedName(allTokens[i+1]),
-                            m: stats[1], pts: stats[0], // 内部で点・試を入替
+                            m: stats[1], pts: stats[0],
                             w: stats[2], d: stats[3], l: stats[4], gf: stats[5], ga: stats[6], gd: stats[7]
                         });
                         i += 9;
@@ -116,11 +116,16 @@
                     if (index === 10) html += `<tr><td colspan="10" class="league-divider" contenteditable="true">B LEAGUE</td></tr>`;
                 }
                 html += `<tr>
-                    <td>${isTwoBlock ? (index % 10 + 1) : d.rank}</td>
-                    <td class="col-t"><span class="team-name" contenteditable="true">${d.team}</span></td>
-                    <td>${d.m}</td><td>${d.pts}</td><td>${d.w}</td><td>${d.d}</td><td>${d.l}</td>
-                    <td>${d.gf}</td><td>${d.ga}</td>
-                    <td class="col-gd-val">${parseInt(d.gd)>0?'+'+d.gd:d.gd}</td>
+                    <td contenteditable="true">${isTwoBlock ? (index % 10 + 1) : d.rank}</td>
+                    <td class="col-t-val"><span class="team-name" contenteditable="true">${d.team}</span></td>
+                    <td contenteditable="true">${d.m}</td>
+                    <td class="col-pts-val" contenteditable="true">${d.pts}</td>
+                    <td contenteditable="true">${d.w}</td>
+                    <td contenteditable="true">${d.d}</td>
+                    <td contenteditable="true">${d.l}</td>
+                    <td contenteditable="true">${d.gf}</td>
+                    <td contenteditable="true">${d.ga}</td>
+                    <td contenteditable="true">${parseInt(d.gd)>0?'+'+d.gd:d.gd}</td>
                 </tr>`;
             });
             body.innerHTML = html;
