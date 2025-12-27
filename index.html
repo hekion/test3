@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Goalink Editor - Standing</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { background: #111; color: white; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+        .controls { background: #222; padding: 15px; border-radius: 10px; margin-bottom: 20px; width: 480px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
+        textarea { width: 100%; height: 100px; background: #333; color: #ccc; border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 11px; }
+        button { background: #007AFF; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        /* インスタ投稿用 4:5サイズ */
+        #capture-area { 
+            width: 432px; height: 540px; background: #000; overflow: hidden; position: relative;
+            display: flex; flex-direction: column; padding: 15px 15px 20px 15px; box-sizing: border-box;
+        }
+
+        .header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #fff; padding-bottom: 5px; }
+        .league-title { font-size: 18px; font-weight: 900; letter-spacing: 0.1em; }
+
+        /* テーブルスタイル */
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th { font-size: 10px; color: #aaa; padding-bottom: 5px; border-bottom: 1px solid #333; }
+        td { font-size: 13px; font-weight: 800; padding: 4.5px 0; border-bottom: 1px solid #222; text-align: center; }
+
+        /* カラム幅調整 */
+        .col-rank { width: 25px; }
+        .col-team { width: 160px; text-align: left; padding-left: 10px; }
+        .col-pts { width: 35px; color: #ff3b30; } /* 勝点は赤色で強調 */
+        .col-m { width: 30px; color: #aaa; }
+        .col-diff { width: 40px; }
+
+        /* 順位の色帯（J1想定） */
+        .rank-1 { background: rgba(0, 122, 255, 0.2); } /* ACL圏内など */
+        .rank-18, .rank-19, .rank-20 { background: rgba(255, 59, 48, 0.15); } /* 降格圏 */
+
+        .team-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+
+        #res img { margin-top: 20px; width: 432px; border: 1px solid #444; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <textarea id="it" placeholder="順位表をそのままコピペ"></textarea>
+        <button onclick="parseStanding()">1. 順位表を解析</button>
+        <button onclick="takePhoto()" style="background:#34c759;">2. 画像出力</button>
+    </div>
+
+    <div id="capture-area">
+        <div class="header">
+            <div class="league-title" contenteditable="true">明治安田Ｊ１リーグ 順位表</div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-rank">順位</th>
+                    <th class="col-team">チーム</th>
+                    <th class="col-m">試合</th>
+                    <th class="col-pts">勝点</th>
+                    <th class="col-diff">得失</th>
+                </tr>
+            </thead>
+            <tbody id="standing-body">
+                </tbody>
+        </table>
+    </div>
+
+    <div id="res"></div>
+
+    <script>
+        // 前回のチーム名変換辞書を流用
+        const teamDict = { "鹿島": "鹿島アントラーズ", "浦和": "浦和レッズ", "横浜FM": "横浜F・マリノス", "町田": "FC町田ゼルビア", "神戸": "ヴィッセル神戸", "広島": "サンフレッチェ広島", "セレッソ": "セレッソ大阪", "G大阪": "ガンバ大阪" /* ...必要に応じて追加 */ };
+
+        function getConvertedName(name) {
+            for (let key in teamDict) {
+                if (name.includes(key)) return teamDict[key];
+            }
+            return name;
+        }
+
+        function parseStanding() {
+            const raw = document.getElementById('it').value;
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l !== "");
+            let data = [];
+
+            // PC/スマホ両方の「数字の並び」から順位データを抽出するロジック
+            // 一般的な順位表：順位 チーム 試合 勝点 勝 引 分 得 失 差
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                // 順位（数字だけ）の行を見つけたら、その後の情報を探す
+                if (line.match(/^\d{1,2}$/)) {
+                    let rank = line;
+                    let team = lines[i+1];
+                    
+                    // 数値データを抽出（勝点、試合数、得失点差など）
+                    let stats = [];
+                    for(let j=i+2; j<i+15; j++) {
+                        if(!lines[j]) break;
+                        if(lines[j].match(/^[+-]?\d+$/)) {
+                            stats.push(lines[j]);
+                        }
+                        if(stats.length >= 8) break; // 必要な数値が揃ったら終了
+                    }
+
+                    if(team && stats.length >= 3) {
+                        data.push({
+                            rank: rank,
+                            team: getConvertedName(team),
+                            m: stats[0], // 試合数
+                            pts: stats[1], // 勝点
+                            diff: stats[stats.length - 1] // 得失点差（だいたい最後に来る）
+                        });
+                    }
+                }
+            }
+
+            renderStanding(data);
+        }
+
+        function renderStanding(data) {
+            const body = document.getElementById('standing-body');
+            body.innerHTML = data.slice(0, 20).map(d => `
+                <tr class="rank-${d.rank}">
+                    <td class="col-rank">${d.rank}</td>
+                    <td class="col-team"><span class="team-name" contenteditable="true">${d.team}</span></td>
+                    <td class="col-m" contenteditable="true">${d.m}</td>
+                    <td class="col-pts" contenteditable="true">${d.pts}</td>
+                    <td class="col-diff" contenteditable="true">${d.diff >= 0 ? '+' + d.diff : d.diff}</td>
+                </tr>
+            `).join('');
+        }
+
+        function takePhoto() {
+            html2canvas(document.getElementById('capture-area'), { scale: 4, backgroundColor: "#000" }).then(c => {
+                const res = document.getElementById('res');
+                res.innerHTML = '';
+                res.appendChild(new Image()).src = c.toDataURL();
+            });
+        }
+    </script>
+</body>
+</html>
