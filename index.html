@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Goalink Editor - Final Refined</title>
+    <title>Goalink Editor - Balanced Standing</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 10px; }
@@ -12,35 +12,35 @@
         
         #capture-area { 
             width: 432px; height: 540px; background: #000; overflow: hidden; 
-            display: flex; flex-direction: column; padding: 5px; box-sizing: border-box;
+            display: flex; flex-direction: column; padding: 15px 5px; box-sizing: border-box;
+        }
+
+        /* メインのリーグタイトル（一番上） */
+        .main-league-title {
+            text-align: center; font-size: 14px; font-weight: 900; letter-spacing: 3px;
+            margin-bottom: 15px; margin-top: 10px; /* ここで「下にずらす」量を調整 */
+            color: #fff;
         }
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         
-        /* 基本設定：数値やヘッダーは細字(500) */
         th, td { text-align: center; white-space: nowrap; line-height: 1.2; font-weight: 500; }
-        th { font-size: 9px; color: #777; padding: 5px 0; border-bottom: 1px solid #444; }
-        td { font-size: 11px; padding: 2.8px 0; border-bottom: 1px solid #222; color: #eee; }
+        th { font-size: 9px; color: #777; padding-bottom: 5px; border-bottom: 1px solid #444; }
+        td { font-size: 11px; padding: 3px 0; border-bottom: 1px solid #222; color: #eee; }
 
-        /* チーム名だけを太文字(900)に */
         .col-t-val { font-weight: 900 !important; font-size: 11.5px; color: #fff; text-align: left; padding-left: 5px; }
-
-        /* 勝点列に少しだけアクセント（案1の採用） */
         .col-pts-val { background: rgba(255,255,255,0.05); color: #fff; }
 
+        /* Aリーグ/Bリーグの区切り */
         .league-divider { 
             background: #222; color: #fff; font-size: 9px; font-weight: 900; 
-            text-align: center; padding: 3px 0; border-bottom: 1px solid #444;
+            text-align: center; padding: 4px 0; border-bottom: 1px solid #444;
         }
 
         /* 列幅 */
-        .col-r { width: 22px; } 
-        .col-t { width: 130px; } 
-        .col-m { width: 22px; } 
-        .col-pts { width: 28px; } 
-        .col-s { width: 20px; color: #777; }
-        .col-g { width: 22px; color: #777; }
-        .col-gd { width: 28px; }
+        .col-r { width: 22px; } .col-t { width: 130px; } .col-m { width: 22px; } 
+        .col-pts { width: 28px; } .col-s { width: 20px; color: #777; }
+        .col-g { width: 22px; color: #777; } .col-gd { width: 28px; }
 
         .team-name { overflow: hidden; text-overflow: ellipsis; display: block; }
         #res img { margin-top: 20px; width: 432px; border: 1px solid #444; }
@@ -58,6 +58,8 @@
     </div>
 
     <div id="capture-area">
+        <div class="main-league-title" contenteditable="true">J1 LEAGUE</div>
+
         <table>
             <thead>
                 <tr>
